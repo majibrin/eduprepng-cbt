@@ -13,10 +13,14 @@ body {
 /* ===== LAYOUT ===== */
 .app-container {
   width: 100%;
-  margin: auto;
+  max-width: 600px; 
+  margin: 0 auto; /* This centers the container now that the body flex is gone */
   padding: 16px;
-  padding-bottom: 90px; /* space for sticky nav */
+  padding-bottom: 90px;
+  background: #ffffff;
+  min-height: 100vh;
 }
+
 
 /* ===== HEADER ===== */
 .exam-title {

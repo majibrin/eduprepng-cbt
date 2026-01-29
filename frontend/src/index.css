@@ -1,108 +1,14 @@
-/* --- Global Reset & Foundation --- */
 :root {
   font-family: system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  box-sizing: border-box;
   color-scheme: light dark;
 }
 
-*, *:before, *:after {
-  box-sizing: inherit;
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   padding: 0;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center; /* Horizontally centers the App.jsx container */
-  background-color: #f5f7fb;
-  color: #213547;
-}
-
-/* --- Typography --- */
-h2 {
-  font-size: 1.8rem;
-  text-align: center;
-  margin-bottom: 20px;
-  color: #007bff;
-}
-
-h3 {
-  font-size: 1.2rem;
-  text-align: center;
-  color: #d9534f; /* Timer color */
-}
-
-/* --- Status & Alerts --- */
-pre {
-  background: #e9ecef;
-  padding: 12px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  white-space: pre-wrap; /* Prevents long text from pushing the layout left */
-  word-break: break-all;
-  text-align: center;
-}
-
-/* --- Buttons --- */
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.8em 1.4em;
-  font-size: 1em;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: #1a1a1a;
-  color: white;
-}
-
-button:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-button:disabled {
-  background-color: #cccccc !important;
-  color: #666666 !important;
-  cursor: not-allowed;
-}
-
-.primary-btn {
-  background-color: #007bff !important;
-}
-
-.secondary-btn {
-  background-color: #6c757d !important;
-}
-
-/* --- Pagination & Layout Fix --- */
-.pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  margin-top: 30px;
-}
-
-.pagination button {
-  flex: 1; /* Ensures buttons grow to fill space evenly */
-  max-width: 200px;
-}
-
-/* --- Media Queries --- */
-@media (prefers-color-scheme: light) {
-  body {
-    background-color: #ffffff;
-    color: #213547;
-  }
-}
-
-@media (max-width: 480px) {
-  body {
-    padding: 10px;
-  }
+  background-:;color: #f4f6f8; /* Ensures a consistent background */
 }

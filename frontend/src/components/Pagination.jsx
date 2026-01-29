@@ -10,7 +10,7 @@ function Pagination({
   const isLast = current === total - 1;
 
   return (
-    <div className="pagination">
+        <div className="pagination">
       <button
         className="secondary-btn"
         onClick={onPrev}
@@ -20,7 +20,11 @@ function Pagination({
       </button>
 
       {!isLast && (
-        <button onClick={onNext} disabled={disabled}>
+        <button 
+          className="primary-btn" /* Add this class here */
+          onClick={onNext} 
+          disabled={disabled}
+        >
           Next
         </button>
       )}
@@ -35,6 +39,7 @@ function Pagination({
         </button>
       )}
     </div>
+
   );
 }
 
