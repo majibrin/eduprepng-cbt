@@ -10,42 +10,41 @@ function ResultPage({ result, onRestart }) {
   } = result;
 
   return (
-    <div className="question-card">
-      <h4>Exam Result</h4>
+    <div className="result-container">
+      <h2 className="exam-title">Exam Result</h2>
 
-      <div
-        className="question-text"
-        style={{ fontSize: "2.5rem", textAlign: "center", fontWeight: "bold" }}
-      >
+      <div className="result-score">
         {score} / {total}
       </div>
 
-      <p style={{ textAlign: "center", marginBottom: 20 }}>
+      <p className="result-percentage">
         Percentage: <strong>{percentage}%</strong>
       </p>
 
-      <ul className="options">
-        <li className="option">
+      <ul className="result-stats">
+        <li>
           <span>Answered</span>
           <strong>{answered}</strong>
         </li>
-        <li className="option">
+        <li>
           <span>Correct</span>
           <strong>{correct}</strong>
         </li>
-        <li className="option">
+        <li>
           <span>Wrong</span>
           <strong>{wrong}</strong>
         </li>
-        <li className="option">
+        <li>
           <span>Skipped</span>
           <strong>{skipped}</strong>
         </li>
       </ul>
 
-      <button className="primary-btn" onClick={onRestart}>
-        Take Another Exam
-      </button>
+      <div className="result-actions">
+        <button className="primary-btn" onClick={onRestart}>
+          Take Another Exam
+        </button>
+      </div>
     </div>
   );
 }
