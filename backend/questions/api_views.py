@@ -10,30 +10,48 @@ from django.views.decorators.csrf import csrf_exempt
 from exams.models import Exam
 from .models import ExamAttempt, Question, StudentAnswer
 
-
 @csrf_exempt
 @require_POST
 def start_attempt(request):
-    data = json.loads(request.body)
-    exam_id = data.get("exam_id")
+    try:
+        data = json.loads(request.body)
+        
+        # Get selection from frontend (Note: using .get matches React keys)
+        exam_type = data.get("exam_type")
+        subject_name = data.get("subject")
+        year = data.get("year")
 
-    exam = get_object_or_404(Exam, id=exam_id)
+        # 1. Look for the exam based on the dropdown selections
+        # We use icontains to be flexible with naming (e.g. "Biology" vs "BIOLOGY")
+        exam = Exam.objects.filter(
+            title__icontains=exam_type,
+            subject__name__icontains=subject_name
+        ).first()
 
-    now = timezone.now()
-    expires_at = now + timedelta(minutes=exam.duration_minutes)
+        if not exam:
+            return JsonResponse({
+                "error": f"No exam found for {exam_type} {subject_name} ({year})"
+            }, status=404)
 
-    attempt = ExamAttempt.objects.create(
-        student=None,   # frontend phase
-        exam=exam,
-        expires_at=expires_at,
-        status="in_progress",
-    )
+        # 2. Setup the timing logic
+        now = timezone.now()
+        expires_at = now + timedelta(minutes=exam.duration_minutes)
 
-    return JsonResponse({
-        "attempt_id": attempt.id,
-        "status": attempt.status,
-        "expires_at": attempt.expires_at,
-    })
+        # 3. Create the attempt
+        attempt = ExamAttempt.objects.create(
+            student=None,   # Set to request.user if you add auth later
+            exam=exam,
+            expires_at=expires_at,
+            status="in_progress",
+        )
+
+        return JsonResponse({
+            "attempt_id": attempt.id,
+            "status": attempt.status,
+            "expires_at": attempt.expires_at.isoformat(), # Essential for JS parsing
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 @csrf_exempt
@@ -42,8 +60,9 @@ def attempt_questions(request, attempt_id):
     attempt = get_object_or_404(ExamAttempt, id=attempt_id)
 
     if not attempt.is_active():
-        return JsonResponse({"error": "Attempt not active"}, status=400)
+        return JsonResponse({"error": "Attempt not active or expired"}, status=400)
 
+    # Fetch questions linked to the exam
     questions = attempt.exam.questions.all()
 
     return JsonResponse([
@@ -65,25 +84,27 @@ def attempt_questions(request, attempt_id):
 @csrf_exempt
 @require_POST
 def submit_answer(request):
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+        attempt = get_object_or_404(ExamAttempt, id=data["attempt"])
+        question = get_object_or_404(Question, id=data["question"])
 
-    attempt = get_object_or_404(ExamAttempt, id=data["attempt"])
-    question = get_object_or_404(Question, id=data["question"])
+        if not attempt.is_active():
+            return JsonResponse({"error": "Attempt no longer active"}, status=400)
 
-    if not attempt.is_active():
-        return JsonResponse({"error": "Attempt not active"}, status=400)
+        answer, _ = StudentAnswer.objects.update_or_create(
+            attempt=attempt,
+            question=question,
+            defaults={"selected_option": data["selected_option"]},
+        )
 
-    answer, _ = StudentAnswer.objects.update_or_create(
-        attempt=attempt,
-        question=question,
-        defaults={"selected_option": data["selected_option"]},
-    )
-
-    return JsonResponse({
-        "question": question.id,
-        "selected": answer.selected_option,
-        "is_correct": answer.is_correct,
-    })
+        return JsonResponse({
+            "question": question.id,
+            "selected": answer.selected_option,
+            "is_correct": answer.is_correct,
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 @csrf_exempt
@@ -106,6 +127,7 @@ def submit_attempt(request, attempt_id):
     if attempt.status != "in_progress":
         return JsonResponse({"error": "Attempt already finished"}, status=400)
 
+    # Recalculate score based on correct answers
     attempt.score = attempt.answers.filter(is_correct=True).count()
     attempt.complete()
 

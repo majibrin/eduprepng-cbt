@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "./App.css";
 
 import QuestionCard from "./components/QuestionCard";
@@ -17,11 +17,12 @@ function App() {
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState(null);
   const [status, setStatus] = useState("");
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  /* SELECTION STATE */
+  /* SELECTION STATE - Snake case to match Django */
   const [selection, setSelection] = useState({
-    examType: "",
+    exam_type: "",
     subject: "",
     year: "2024",
   });
@@ -37,28 +38,29 @@ function App() {
   /* ================= API LOGIC ================= */
 
   const startExamFlow = async () => {
+    setError(null);
     setLoading(true);
-    setStatus("Initializing Exam...");
+    setStatus("Checking availability...");
+
     try {
-      // 1. Create the Attempt on Backend
-      const startRes = await examApi.startExam({
-        exam_type: selection.examType,
-        subject: selection.subject,
-        year: selection.year
-      });
-      
+      // 1. Start the attempt with the selection object
+      const startRes = await examApi.startExam(selection);
       const newAttemptId = startRes.data.attempt_id;
+      
       setAttemptId(newAttemptId);
       setExpiresAt(startRes.data.expires_at);
 
-      // 2. Immediately Load Questions for that Attempt
+      // 2. Automatically load questions for this attempt
+      setStatus("Fetching questions...");
       const qRes = await examApi.loadQuestions(newAttemptId);
+      
       setQuestions(qRes.data);
       setCurrentIndex(0);
       setStatus("");
     } catch (err) {
-      setStatus("Error: Could not start exam. Check backend connection.");
-      console.error(err);
+      const errorMsg = err.response?.data?.error || "Failed to start exam. Make sure the selection exists in the database.";
+      setError(errorMsg);
+      setStatus("");
     } finally {
       setLoading(false);
     }
@@ -75,14 +77,14 @@ function App() {
         selected_option: option,
       });
     } catch (err) {
-      console.error("Failed to sync answer with server");
+      console.error("Answer sync failed");
     }
   };
 
   const submitExam = async () => {
     if (submitted || !attemptId) return;
     setSubmitted(true);
-    setStatus("Submitting...");
+    setStatus("Calculating results...");
 
     try {
       const res = await examApi.submitExam(attemptId);
@@ -100,7 +102,7 @@ function App() {
         percentage: Math.round((correct / total) * 100),
       });
     } catch (err) {
-      setStatus("Error submitting exam.");
+      setError("Error submitting results.");
       setSubmitted(false);
     }
   };
@@ -114,7 +116,7 @@ function App() {
     setSubmitted(false);
     setResult(null);
     setStatus("");
-    setSelection({ examType: "", subject: "", year: "2024" });
+    setError(null);
   };
 
   /* ================= RENDER LOGIC ================= */
@@ -131,22 +133,30 @@ function App() {
     <div className="app-container">
       <h2 className="exam-title">EduPrep CBT</h2>
 
-      {/* 1. SETUP SCREEN (When no attempt exists) */}
+      {/* ERROR FEEDBACK */}
+      {error && (
+        <div className="status" style={{ border: '1px solid #ff5252', color: '#ff5252', background: '#ffebee' }}>
+          ⚠️ {error}
+          <button onClick={() => setError(null)} style={{width: 'auto', padding: '4px 8px', marginLeft: '10px', background: '#ff5252', color: 'white', borderRadius: '4px'}}>Dismiss</button>
+        </div>
+      )}
+
+      {/* 1. SETUP SCREEN */}
       {!attemptId && (
         <div className="setup-container">
-          <div className="status">Configure your session</div>
+          <div className="status">Select your exam parameters</div>
           
           <div className="setup-form">
             <label>Exam Category</label>
             <select 
               className="option"
-              value={selection.examType}
-              onChange={(e) => setSelection({...selection, examType: e.target.value})}
+              value={selection.exam_type}
+              onChange={(e) => setSelection({...selection, exam_type: e.target.value})}
             >
-              <option value="">-- Select Exam --</option>
+              <option value="">-- Choose Category --</option>
               <option value="JAMB">JAMB (UTME)</option>
               <option value="WAEC">WAEC (SSCE)</option>
-              <option value="POST-UTME">Post-UTME</option>
+              <option value="NECO">NECO</option>
             </select>
 
             <label>Subject</label>
@@ -155,14 +165,15 @@ function App() {
               value={selection.subject}
               onChange={(e) => setSelection({...selection, subject: e.target.value})}
             >
-              <option value="">-- Select Subject --</option>
-              <option value="English">Use of English</option>
+              <option value="">-- Choose Subject --</option>
               <option value="Mathematics">Mathematics</option>
-              <option value="Physics">Physics</option>
+              <option value="English">Use of English</option>
               <option value="Biology">Biology</option>
+              <option value="Physics">Physics</option>
+              <option value="Chemistry">Chemistry</option>
             </select>
 
-            <label>Exam Year</label>
+            <label>Year</label>
             <select 
               className="option"
               value={selection.year}
@@ -177,7 +188,7 @@ function App() {
               className="primary-btn" 
               style={{marginTop: '20px'}}
               onClick={startExamFlow}
-              disabled={!selection.examType || !selection.subject || loading}
+              disabled={!selection.exam_type || !selection.subject || loading}
             >
               {loading ? "Starting..." : "Begin Examination"}
             </button>
