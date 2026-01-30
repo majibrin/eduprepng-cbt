@@ -16,16 +16,15 @@ def start_attempt(request):
     try:
         data = json.loads(request.body)
         
-        # Get selection from frontend (Note: using .get matches React keys)
+        # Keys match the React frontend state
         exam_type = data.get("exam_type")
         subject_name = data.get("subject")
         year = data.get("year")
 
-        # 1. Look for the exam based on the dropdown selections
-        # We use icontains to be flexible with naming (e.g. "Biology" vs "BIOLOGY")
+        # DIRECT FIX: Using 'name' and 'subjects__name' as required by your model
         exam = Exam.objects.filter(
-            title__icontains=exam_type,
-            subject__name__icontains=subject_name
+            name__icontains=exam_type,
+            subjects__name__icontains=subject_name
         ).first()
 
         if not exam:
@@ -33,13 +32,11 @@ def start_attempt(request):
                 "error": f"No exam found for {exam_type} {subject_name} ({year})"
             }, status=404)
 
-        # 2. Setup the timing logic
         now = timezone.now()
         expires_at = now + timedelta(minutes=exam.duration_minutes)
 
-        # 3. Create the attempt
         attempt = ExamAttempt.objects.create(
-            student=None,   # Set to request.user if you add auth later
+            student=None,
             exam=exam,
             expires_at=expires_at,
             status="in_progress",
@@ -48,7 +45,7 @@ def start_attempt(request):
         return JsonResponse({
             "attempt_id": attempt.id,
             "status": attempt.status,
-            "expires_at": attempt.expires_at.isoformat(), # Essential for JS parsing
+            "expires_at": attempt.expires_at.isoformat(),
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
